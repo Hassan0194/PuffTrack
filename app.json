@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/Pufftrack.png",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#081210",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/Pufftrack.png",

@@ -18,7 +18,7 @@ export function TodayTriggers({ counts, unit = false }: TodayTriggersProps) {
 
   return (
     <View style={styles.block}>
-      <Text style={styles.title}>Today's triggers</Text>
+      <Text style={styles.title}>Today&apos;s triggers</Text>
       {counts.map((item) => {
         const option = triggerOption(item.type);
         return (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BackHandler, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { GoalsScreen } from './src/screens/GoalsScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -15,6 +16,14 @@ type AppScreen = 'home' | 'history' | 'insights' | 'goals' | 'settings';
 type LaunchGate = 'loading' | 'onboarding' | 'ready';
 
 export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
+}
+
+function AppContent() {
   const [screen, setScreen] = useState<AppScreen>('home');
   const [dataVersion, setDataVersion] = useState(0);
   const [gate, setGate] = useState<LaunchGate>('loading');

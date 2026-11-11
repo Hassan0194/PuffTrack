@@ -40,7 +40,7 @@ export function buildHistorySnapshot(
 ): HistorySnapshot {
   const today = todayKey(now);
   const byDate = new Map(archived.map((day) => [day.date, day]));
-  const days: Array<Omit<WeekDay, 'barPercent'>> = [];
+  const days: Omit<WeekDay, 'barPercent'>[] = [];
 
   for (let offset = WEEK_LENGTH - 1; offset >= 0; offset -= 1) {
     const date = addCalendarDays(today, -offset);

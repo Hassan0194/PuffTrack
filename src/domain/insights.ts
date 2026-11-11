@@ -93,6 +93,24 @@ export function recordedDaysFromHistory(
   return days.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 
+/** Every saved day, including days with a count of 0. A streak needs those quiet days. */
+export function savedDayTotals(
+  archived: readonly ArchivedDay[],
+  today: { dayKey: string; puffs: readonly TrackedPuff[] },
+  now: Date,
+): { date: string; count: number }[] {
+  const todayDate = todayKey(now);
+  const totals = archived
+    .filter((day) => day.date !== todayDate)
+    .map((day) => ({ date: day.date, count: day.count }));
+
+  if (today.dayKey === todayDate) {
+    totals.push({ date: todayDate, count: today.puffs.length });
+  }
+
+  return totals;
+}
+
 export function totalPuffs(days: readonly { count: number }[]): number {
   return days.reduce((sum, day) => sum + day.count, 0);
 }
@@ -141,7 +159,7 @@ export function weeklyTotal(days: readonly RecordedDay[]): number {
   return totalPuffs(days);
 }
 
-export function chartShares(days: readonly RecordedDay[]): Array<DayTotal & { barPercent: number }> {
+export function chartShares(days: readonly RecordedDay[]): (DayTotal & { barPercent: number })[] {
   const peak = days.reduce((max, day) => Math.max(max, day.count), 0);
 
   return days.map((day) => ({

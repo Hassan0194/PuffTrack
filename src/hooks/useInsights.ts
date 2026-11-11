@@ -11,6 +11,7 @@ import {
   mostCommonTrigger,
   recordedDaysFromHistory,
   recordedDaysInLastWeek,
+  savedDayTotals,
   totalPuffs,
   triggerShares,
   weeklyTotal,
@@ -24,6 +25,7 @@ import { loadTodayRecord } from '../storage/todayPuffs';
 
 export type InsightModel = {
   recordedDayCount: number;
+  dayTotals: { date: string; count: number }[];
   total: number;
   average: number | null;
   highest: RecordedDay | null;
@@ -50,6 +52,7 @@ function buildModel(
 
   return {
     recordedDayCount: days.length,
+    dayTotals: savedDayTotals(archived, today, now),
     total: totalPuffs(days),
     average: averageDailyPuffs(days),
     highest: highestConsumptionDay(days),

@@ -8,7 +8,7 @@ import { todayKey } from '../domain/date';
 import { longestGapMs } from '../domain/gaps';
 import { countPuffTriggers, type TriggerCount } from '../domain/triggers';
 import { applyPuff, emptyTodayRecord, type TodayRecord } from '../domain/todayRecord';
-import { loadTodayRecord, saveTodayRecord } from '../storage/todayPuffs';
+import { loadTodayRecord, removeLastTodayPuff, saveTodayRecord } from '../storage/todayPuffs';
 
 export type TodayPuffState = {
   count: number;
@@ -22,6 +22,9 @@ export type TodayPuffState = {
   longestGapMs: number | null;
   triggerCounts: TriggerCount[];
   addPuff: (trigger?: TriggerType | null) => void;
+  /** Removes the most recent entry of today. */
+  undoLast: () => void;
+  canUndo: boolean;
 };
 
 /**
@@ -32,7 +35,7 @@ export function useTodayPuffs(dailyLimit: number = DAILY_PUFF_LIMIT): TodayPuffS
   const [, setClock] = useState(0);
   const sessionRef = useRef(session);
   const hydratedRef = useRef(false);
-  const pendingRef = useRef<Array<{ atMs: number; trigger: TriggerType | null }>>([]);
+  const pendingRef = useRef<{ atMs: number; trigger: TriggerType | null }[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,6 +160,37 @@ export function useTodayPuffs(dailyLimit: number = DAILY_PUFF_LIMIT): TodayPuffS
     }
   }, []);
 
+  const undoLast = useCallback(() => {
+    const current = sessionRef.current;
+    if (current.puffs.length === 0) {
+      return;
+    }
+
+    if (!hydratedRef.current) {
+      pendingRef.current.pop();
+    }
+
+    const puffs = current.puffs.slice(0, -1);
+    const next: TodayRecord = {
+      dayKey: current.dayKey,
+      count: puffs.length,
+      puffs,
+      lastPuffAt: puffs.length === 0 ? null : puffs[puffs.length - 1].atMs,
+    };
+    sessionRef.current = next;
+    setSession(next);
+
+    if (hydratedRef.current) {
+      void removeLastTodayPuff().then((stored) => {
+        // Follow storage in case the widget added an entry meanwhile.
+        if (stored && stored.dayKey === sessionRef.current.dayKey) {
+          sessionRef.current = stored;
+          setSession(stored);
+        }
+      });
+    }
+  }, []);
+
   const now = new Date();
   const today = todayKey(now);
   const active = session.dayKey === today ? session : emptyTodayRecord(now);
@@ -174,5 +208,7 @@ export function useTodayPuffs(dailyLimit: number = DAILY_PUFF_LIMIT): TodayPuffS
     longestGapMs: longestGapMs(active.puffs.map((puff) => puff.atMs)),
     triggerCounts: countPuffTriggers(active.puffs),
     addPuff,
+    undoLast,
+    canUndo: active.puffs.length > 0,
   };
 }

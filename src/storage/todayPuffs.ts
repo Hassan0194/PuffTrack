@@ -177,6 +177,35 @@ export function saveTodayRecord(record: TodayRecord): Promise<void> {
 }
 
 /**
+ * Removes the most recent puff of today. The list is written directly, because saveTodayRecord
+ * merges by timestamp and would bring the removed puff back.
+ */
+export function removeLastTodayPuff(now = new Date()): Promise<TodayRecord | null> {
+  return enqueue(async () => {
+    try {
+      const current = await readTodayRecord(now);
+      if (current.dayKey !== todayKey(now) || current.puffs.length === 0) {
+        return current;
+      }
+
+      const puffs = current.puffs.slice(0, -1);
+      const next: TodayRecord = {
+        dayKey: current.dayKey,
+        count: puffs.length,
+        puffs,
+        lastPuffAt: puffs.length === 0 ? null : puffs[puffs.length - 1].atMs,
+      };
+
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toStored(next)));
+      await refreshPuffTrackWidget();
+      return next;
+    } catch {
+      return null;
+    }
+  });
+}
+
+/**
  * Adds one puff to today's stored list.
  * The list is re-read inside the save queue so this cannot replace a puff already stored.
  */

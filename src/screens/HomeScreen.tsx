@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
@@ -44,6 +45,8 @@ export function HomeScreen({ onOpenGoals, onOpenHistory, onOpenInsights, onOpenS
     longestGapMs,
     triggerCounts,
     addPuff,
+    undoLast,
+    canUndo,
   } = useTodayPuffs(consumption.referenceLimit);
   const { currentTrigger, selectTrigger } = useCurrentTrigger();
   const [triggerSheetOpen, setTriggerSheetOpen] = useState(false);
@@ -139,7 +142,28 @@ export function HomeScreen({ onOpenGoals, onOpenHistory, onOpenInsights, onOpenS
             size={gaugeSize}
             unit={unit}
           />
-          <PuffButton unit={unit} onPress={() => addPuff(currentTrigger)} />
+          <PuffButton
+            unit={unit}
+            onPress={() => {
+              // Feedback is a nicety. A device without haptics must not block logging.
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+              addPuff(currentTrigger);
+            }}
+          />
+          {canUndo ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Undo last ${countWord(unit, 1)}`}
+              hitSlop={8}
+              onPress={() => {
+                void Haptics.selectionAsync().catch(() => undefined);
+                undoLast();
+              }}
+              style={({ pressed }) => [styles.undo, pressed ? styles.menuButtonPressed : null]}
+            >
+              <Text style={styles.undoLabel}>{`Undo last ${countWord(unit, 1)}`}</Text>
+            </Pressable>
+          ) : null}
           <View accessibilityLabel={statusLabel.trim()} style={styles.status}>
             {pouch ? (
               <>
@@ -237,6 +261,16 @@ const styles = StyleSheet.create({
     height: 2,
     borderRadius: 1,
     backgroundColor: colors.text,
+  },
+  undo: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  undoLabel: {
+    color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: '700',
   },
   appName: {
     color: colors.text,

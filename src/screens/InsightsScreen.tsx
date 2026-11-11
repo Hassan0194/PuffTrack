@@ -8,6 +8,7 @@ import { SectionCard } from '../components/SectionCard';
 import { triggerOption } from '../constants/triggers';
 import { countWord } from '../domain/consumption';
 import { todayKey } from '../domain/date';
+import { withinLimitStreaks } from '../domain/streaks';
 import { formatGroupedNumber, formatHistoryDate, formatLongestGap, formatPuffCount } from '../format/puffCopy';
 import { useConsumptionMode } from '../hooks/useConsumptionMode';
 import { useInsights } from '../hooks/useInsights';
@@ -41,6 +42,7 @@ export function InsightsScreen({ onBack }: InsightsScreenProps) {
   const plural = countWord(unit, 2);
   const singular = countWord(unit, 1);
   const hasData = insights.recordedDayCount > 0;
+  const streaks = withinLimitStreaks(insights.dayTotals, consumption.referenceLimit, todayKey(new Date()));
   const today = todayKey(new Date());
   const common = insights.mostCommon;
   const commonOption = common ? triggerOption(common.type) : null;
@@ -62,6 +64,19 @@ export function InsightsScreen({ onBack }: InsightsScreenProps) {
             </Text>
             <Text style={ui.body}>{formatPuffCount(insights.total, unit)} in saved history</Text>
             <Text style={ui.secondary}>Missing days are not counted as zero.</Text>
+          </SectionCard>
+
+          <SectionCard title="STREAK">
+            <Text style={styles.hero}>
+              {streaks.current} {streaks.current === 1 ? 'day' : 'days'}
+            </Text>
+            <Text style={ui.secondary}>
+              {`In a row within your daily limit of ${formatGroupedNumber(consumption.referenceLimit)} ${plural}`}
+            </Text>
+            <Text style={ui.body}>
+              Best streak: {streaks.best} {streaks.best === 1 ? 'day' : 'days'}
+            </Text>
+            <Text style={ui.secondary}>Days the app was not used break a streak.</Text>
           </SectionCard>
 
           {common && commonOption ? (
