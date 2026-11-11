@@ -17,6 +17,8 @@ type ConsumptionModeState = {
   unit: CountUnit;
   baseline: number | null;
   customLimit: number | null;
+  /** The optional personal target from Goals. */
+  personalTarget: number | null;
 };
 
 const VAPE_STATE: ConsumptionModeState = {
@@ -26,6 +28,7 @@ const VAPE_STATE: ConsumptionModeState = {
   unit: 'puff',
   baseline: null,
   customLimit: null,
+  personalTarget: null,
 };
 
 type ConsumptionMode = ConsumptionModeState & {
@@ -49,6 +52,7 @@ export function useConsumptionMode(): ConsumptionMode {
         }
 
         const customLimit = goals.dailyLimit;
+        const personalTarget = goals.dailyTarget;
         if (profile && isCigaretteProfile(profile)) {
           setState({
             ready: true,
@@ -57,6 +61,7 @@ export function useConsumptionMode(): ConsumptionMode {
             unit: 'cigarette',
             baseline: profile.dailyBaseline,
             customLimit,
+            personalTarget,
           });
           return;
         }
@@ -69,11 +74,12 @@ export function useConsumptionMode(): ConsumptionMode {
             unit: 'pouch',
             baseline: profile.dailyBaseline,
             customLimit,
+            personalTarget,
           });
           return;
         }
 
-        setState({ ...VAPE_STATE, customLimit });
+        setState({ ...VAPE_STATE, customLimit, personalTarget });
       })
       .catch(() => {
         if (!cancelled) {

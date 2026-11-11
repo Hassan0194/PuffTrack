@@ -8,6 +8,7 @@ import { SectionCard } from '../components/SectionCard';
 import { triggerOption } from '../constants/triggers';
 import { countWord } from '../domain/consumption';
 import { todayKey } from '../domain/date';
+import { milestones } from '../domain/patterns';
 import { withinLimitStreaks } from '../domain/streaks';
 import { formatGroupedNumber, formatHistoryDate, formatLongestGap, formatPuffCount } from '../format/puffCopy';
 import { useConsumptionMode } from '../hooks/useConsumptionMode';
@@ -42,7 +43,11 @@ export function InsightsScreen({ onBack }: InsightsScreenProps) {
   const plural = countWord(unit, 2);
   const singular = countWord(unit, 1);
   const hasData = insights.recordedDayCount > 0;
-  const streaks = withinLimitStreaks(insights.dayTotals, consumption.referenceLimit, todayKey(new Date()));
+  const target = consumption.personalTarget;
+  const streakLimit = target ?? consumption.referenceLimit;
+  const streaks = withinLimitStreaks(insights.dayTotals, streakLimit, todayKey(new Date()));
+  const change = insights.weekChange;
+  const earned = milestones(insights.dayTotals, streaks, streakLimit, change);
   const today = todayKey(new Date());
   const common = insights.mostCommon;
   const commonOption = common ? triggerOption(common.type) : null;
@@ -71,12 +76,56 @@ export function InsightsScreen({ onBack }: InsightsScreenProps) {
               {streaks.current} {streaks.current === 1 ? 'day' : 'days'}
             </Text>
             <Text style={ui.secondary}>
-              {`In a row within your daily limit of ${formatGroupedNumber(consumption.referenceLimit)} ${plural}`}
+              {target == null
+                ? `In a row within your daily limit of ${formatGroupedNumber(streakLimit)} ${plural}`
+                : `In a row within your personal target of ${formatGroupedNumber(streakLimit)} ${plural}`}
             </Text>
             <Text style={ui.body}>
               Best streak: {streaks.best} {streaks.best === 1 ? 'day' : 'days'}
             </Text>
             <Text style={ui.secondary}>Days the app was not used break a streak.</Text>
+          </SectionCard>
+
+          {change ? (
+            <SectionCard title="THIS WEEK VS LAST WEEK">
+              <Text style={styles.hero}>
+                {change.changePercent == null
+                  ? '--'
+                  : `${change.changePercent > 0 ? '+' : ''}${Math.round(change.changePercent)}%`}
+              </Text>
+              <Text style={ui.secondary}>
+                {`Average ${formatAverage(change.thisWeekAverage)} ${plural}/day, against ${formatAverage(change.lastWeekAverage)} the week before`}
+              </Text>
+              <Text style={ui.secondary}>Only days with a saved record are counted.</Text>
+            </SectionCard>
+          ) : null}
+
+          <SectionCard title="WHEN YOU USE">
+            {insights.timeOfDay.every((bucket) => bucket.count === 0) ? (
+              <EmptyState body="Keep tracking to see your busiest time of day." plain title="Not enough data yet" />
+            ) : (
+              <InsightBars
+                unit={unit}
+                rows={insights.timeOfDay.map((bucket) => ({
+                  date: bucket.key,
+                  label: bucket.label,
+                  count: bucket.count,
+                  barPercent: bucket.barPercent,
+                }))}
+              />
+            )}
+          </SectionCard>
+
+          <SectionCard title="MILESTONES">
+            {earned.map((item) => (
+              <View key={item.id} style={styles.milestone}>
+                <Text style={styles.milestoneMark}>{item.earned ? '✅' : '🔒'}</Text>
+                <View style={styles.milestoneText}>
+                  <Text style={[styles.triggerName, item.earned ? null : styles.locked]}>{item.title}</Text>
+                  <Text style={ui.secondary}>{item.detail}</Text>
+                </View>
+              </View>
+            ))}
           </SectionCard>
 
           {common && commonOption ? (
@@ -207,6 +256,21 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 28,
     fontWeight: '700',
+  },
+  milestone: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  milestoneMark: {
+    fontSize: 22,
+  },
+  milestoneText: {
+    flex: 1,
+    gap: 2,
+  },
+  locked: {
+    color: colors.textMuted,
   },
   triggerRow: {
     gap: spacing.xs,

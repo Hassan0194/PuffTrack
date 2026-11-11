@@ -30,6 +30,7 @@
       "favicon": "./assets/Pufftrack.png"
     },
     "plugins": [
+      ["expo-notifications", { "color": "#3DDCB0" }],
       [
         "react-native-android-widget",
         {

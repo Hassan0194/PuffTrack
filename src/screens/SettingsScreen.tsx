@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
-import { useState } from 'react';
-import { Alert, Linking, Text } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Text } from 'react-native';
 
 import { PrimaryButton } from '../components/PrimaryButton';
 import { Screen } from '../components/Screen';
@@ -9,6 +9,15 @@ import { SectionCard } from '../components/SectionCard';
 import { TextAction } from '../components/TextAction';
 import { restoreBackup, type PuffTrackBackup } from '../storage/backup';
 import { exportBackupFile, pickBackupFile } from '../storage/backupFiles';
+import {
+  DEFAULT_REMINDER,
+  disableReminder,
+  enableReminder,
+  loadReminder,
+  REMINDER_TIMES,
+  syncReminder,
+  type ReminderSettings,
+} from '../storage/reminder';
 import { exportReportPdf } from '../storage/reportFile';
 import { ui } from '../theme/ui';
 
@@ -21,6 +30,27 @@ type SettingsScreenProps = {
 export function SettingsScreen({ onBack, onRestored }: SettingsScreenProps) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [reminder, setReminder] = useState<ReminderSettings>(DEFAULT_REMINDER);
+
+  useEffect(() => {
+    void loadReminder().then(setReminder);
+  }, []);
+
+  async function turnReminderOn(hour: number, minute: number) {
+    setMessage(null);
+    const ok = await enableReminder(hour, minute);
+    if (!ok) {
+      setMessage('Reminders need notification permission. You can allow it in your phone settings.');
+      return;
+    }
+
+    setReminder({ enabled: true, hour, minute });
+  }
+
+  async function turnReminderOff() {
+    await disableReminder();
+    setReminder((current) => ({ ...current, enabled: false }));
+  }
 
   async function exportBackup() {
     if (busy) {
@@ -66,6 +96,7 @@ export function SettingsScreen({ onBack, onRestored }: SettingsScreenProps) {
       return;
     }
 
+    await syncReminder();
     setMessage('Backup restored.');
     Alert.alert('Backup restored', 'Your PuffTrack data has been restored.', [
       { text: 'OK', onPress: onRestored },
@@ -111,6 +142,27 @@ export function SettingsScreen({ onBack, onRestored }: SettingsScreenProps) {
     <Screen>
       <ScreenHeader onBack={onBack} title="Settings" />
 
+      <SectionCard title="DAILY REMINDER">
+        <Text style={ui.secondary}>
+          An optional daily nudge to log your count. It stays on your phone and is off until you turn it on.
+        </Text>
+        {reminder.enabled ? (
+          <>
+            <Text style={ui.body}>
+              On, every day at {REMINDER_TIMES.find((t) => t.hour === reminder.hour && t.minute === reminder.minute)?.label ?? `${reminder.hour}:${String(reminder.minute).padStart(2, '0')}`}
+            </Text>
+            {REMINDER_TIMES.filter((t) => t.hour !== reminder.hour || t.minute !== reminder.minute).map((t) => (
+              <TextAction key={t.label} label={`Change to ${t.label}`} onPress={() => void turnReminderOn(t.hour, t.minute)} />
+            ))}
+            <TextAction label="Turn off reminder" onPress={() => void turnReminderOff()} />
+          </>
+        ) : (
+          REMINDER_TIMES.map((t) => (
+            <TextAction key={t.label} label={`Remind me at ${t.label}`} onPress={() => void turnReminderOn(t.hour, t.minute)} />
+          ))
+        )}
+      </SectionCard>
+
       <SectionCard title="REPORT">
         <Text style={ui.secondary}>
           A PDF summary of your saved days, limits, streak and triggers. You choose where it goes.
@@ -126,14 +178,6 @@ export function SettingsScreen({ onBack, onRestored }: SettingsScreenProps) {
         <PrimaryButton label={busy ? 'Working...' : 'Export Backup'} onPress={() => void exportBackup()} />
         <TextAction label="Import Backup" onPress={() => void importBackup()} />
         {message ? <Text style={ui.body}>{message}</Text> : null}
-      </SectionCard>
-
-      <SectionCard title="HELP & SUPPORT">
-        <Text style={ui.secondary}>
-          Want to cut down or quit? Talking to a doctor or a quit-line can help. In the US, the free quitline is
-          1-800-QUIT-NOW (1-800-784-8669). Elsewhere, ask your doctor or local health service.
-        </Text>
-        <TextAction label="Call 1-800-QUIT-NOW" onPress={() => void Linking.openURL('tel:18007848669').catch(() => undefined)} />
       </SectionCard>
 
       <SectionCard title="ABOUT">

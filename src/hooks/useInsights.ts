@@ -19,6 +19,8 @@ import {
   type RecordedDay,
   type TriggerShare,
 } from '../domain/insights';
+import { timeOfDayBuckets, weekOverWeek, type TimeOfDayBucket, type WeekChange } from '../domain/patterns';
+import { todayKey } from '../domain/date';
 import { emptyTodayRecord } from '../domain/todayRecord';
 import { loadPuffHistory } from '../storage/puffHistory';
 import { loadTodayRecord } from '../storage/todayPuffs';
@@ -38,6 +40,8 @@ export type InsightModel = {
   taggedTotal: number;
   mostCommon: TriggerShare | null;
   longestGap: PuffGap | null;
+  timeOfDay: TimeOfDayBucket[];
+  weekChange: WeekChange | null;
 };
 
 function buildModel(
@@ -65,6 +69,8 @@ function buildModel(
     taggedTotal: triggers.taggedTotal,
     mostCommon: mostCommonTrigger(triggers.rows),
     longestGap: longestPuffGap(puffs),
+    timeOfDay: timeOfDayBuckets(puffs),
+    weekChange: weekOverWeek(savedDayTotals(archived, today, now), todayKey(now)),
   };
 }
 

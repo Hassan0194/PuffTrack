@@ -35,7 +35,11 @@ export async function exportReportPdf(now = new Date()): Promise<ReportResult> {
     const unit = unitForProfile(profile);
     const dailyLimit = resolveDailyLimit(unit, profile?.dailyBaseline ?? null, goals.dailyLimit);
     const days = recordedDaysFromHistory(archived, today, now);
-    const streaks = withinLimitStreaks(savedDayTotals(archived, today, now), dailyLimit, todayKey(now));
+    const streaks = withinLimitStreaks(
+      savedDayTotals(archived, today, now),
+      goals.dailyTarget ?? dailyLimit,
+      todayKey(now),
+    );
 
     const html = buildReportHtml({
       generatedAt: now,
