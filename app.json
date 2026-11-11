@@ -19,7 +19,7 @@
       "package": "com.pufftrack.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/Pufftrack.png",
+        "foregroundImage": "./assets/adaptive-icon-foreground.png",
         "backgroundColor": "#081210"
       },
       "edgeToEdgeEnabled": true,
