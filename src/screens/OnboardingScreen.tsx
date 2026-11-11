@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Animated,
+  BackHandler,
   Easing,
   KeyboardAvoidingView,
   Platform,
@@ -231,6 +232,21 @@ export function OnboardingScreen({ onDone }: OnboardingScreenProps) {
       }),
     ]).start();
   }, [fade, slide, step]);
+
+  useEffect(() => {
+    if (index === 0) {
+      return;
+    }
+
+    // Back steps to the previous question. On the first question it closes the app as usual.
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setSaveError(false);
+      setIndex((current) => Math.max(0, current - 1));
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [index]);
 
   function patch(next: Partial<Draft>) {
     setDraft((current) => ({ ...current, ...next }));

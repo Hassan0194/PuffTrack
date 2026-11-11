@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { BackHandler, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { GoalsScreen } from './src/screens/GoalsScreen';
@@ -38,6 +38,20 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (gate !== 'ready' || screen === 'home') {
+      return;
+    }
+
+    // On a sub-screen, back returns Home instead of closing the app.
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setScreen('home');
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [gate, screen]);
 
   if (gate === 'loading') {
     return (
